@@ -1,3 +1,4 @@
+// Importeer de library
 const SibApiV3Sdk = require('@sendinblue/client');
 
 // Functie om de CORS headers correct in te stellen
@@ -25,18 +26,21 @@ const handler = async (req, res) => {
   
   const { email, productTitle, selectedVariant, quantity, price, productUrl } = req.body;
 
-  // --- FINALE CORRECTIE HIER ---
-  // Maak een nieuwe instantie aan voor elke API die we gebruiken
+  // --- START: CORRECTE INITIALISATIE VOLGENS DOCUMENTATIE ---
+  // Stap 1: Krijg de standaard client-instantie
+  const defaultClient = SibApiV3Sdk.ApiClient.instance;
+
+  // Stap 2: Configureer de API-sleutel op de standaard client
+  const apiKey = defaultClient.authentications['api-key'];
+  apiKey.apiKey = process.env.BREVO_API_KEY;
+
+  // Stap 3: Maak de specifieke API-instanties aan
   const transactionalEmailsApi = new SibApiV3Sdk.TransactionalEmailsApi();
   const contactsApi = new SibApiV3Sdk.ContactsApi();
-
-  // Stel de API-sleutel in voor BEIDE instanties
-  transactionalEmailsApi.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-  contactsApi.setApiKey(SibApiV3Sdk.ContactsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-  // --- EINDE CORRECTIE ---
+  // --- EINDE: CORRECTE INITIALISATIE ---
 
   try {
-    // Stap 1: Contactpersoon aanmaken/updaten 
+    // Stap 4: Gebruik de instanties om de acties uit te voeren
     await contactsApi.createContact({
       email: email,
       listIds: [PREORDER_LIST_ID],
@@ -47,14 +51,12 @@ const handler = async (req, res) => {
       productTitle, selectedVariant, quantity, price, productUrl, customerEmail: email,
     };
 
-    // Stap 2: Stuur de bevestigingsmail naar de KLANT
     await transactionalEmailsApi.sendTransacEmail({
       templateId: CUSTOMER_TEMPLATE_ID,
       to: [{ email: email }],
       params: emailParams,
     });
 
-    // Stap 3: Stuur de notificatiemail naar de ADMIN
     await transactionalEmailsApi.sendTransacEmail({
       templateId: ADMIN_TEMPLATE_ID,
       to: [{ email: ADMIN_EMAIL }],

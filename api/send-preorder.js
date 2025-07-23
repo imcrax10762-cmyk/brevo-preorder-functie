@@ -1,4 +1,3 @@
-// Importeer de library
 const SibApiV3Sdk = require('@sendinblue/client');
 
 // Functie om de CORS headers correct in te stellen
@@ -27,14 +26,13 @@ const handler = async (req, res) => {
   const { email, productTitle, selectedVariant, quantity, price, productUrl } = req.body;
 
   // --- FINALE CORRECTIE HIER ---
-  // Initialiseer de ALGEMENE API client en stel de sleutel EENMAAL in
-  const defaultClient = SibApiV3Sdk.ApiClient.instance;
-  const apiKey = defaultClient.authentications['apiKey'];
-  apiKey.apiKey = process.env.BREVO_API_KEY;
-
-  // Maak nu de specifieke API-instanties aan; ze gebruiken nu automatisch de sleutel
+  // Maak een nieuwe instantie aan voor elke API die we gebruiken
   const transactionalEmailsApi = new SibApiV3Sdk.TransactionalEmailsApi();
   const contactsApi = new SibApiV3Sdk.ContactsApi();
+
+  // Stel de API-sleutel in voor BEIDE instanties
+  transactionalEmailsApi.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+  contactsApi.setApiKey(SibApiV3Sdk.ContactsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
   // --- EINDE CORRECTIE ---
 
   try {

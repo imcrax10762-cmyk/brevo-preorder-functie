@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@sendinblue/client": "latest"
+  }
+}

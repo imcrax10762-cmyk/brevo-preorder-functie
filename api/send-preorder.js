@@ -8,7 +8,6 @@ const allowCors = fn => async (req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  // Handel de preflight 'OPTIONS' request af
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -25,44 +24,40 @@ const handler = async (req, res) => {
   const ADMIN_EMAIL = 'imCrax10762@gmail.com';
   // ----------------------------------------------------
   
-  // Haal de data uit het request
   const { email, productTitle, selectedVariant, quantity, price, productUrl } = req.body;
 
-  // Initialiseer de API client op de juiste manier
-  let apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-  let contactsApiInstance = new SibApiV3Sdk.ContactsApi();
-
-  // Stel de API-sleutel in voor de authenticatie
-  let apiKey = apiInstance.authentications['apiKey'];
+  // --- FINALE CORRECTIE HIER ---
+  // Initialiseer de ALGEMENE API client en stel de sleutel EENMAAL in
+  const defaultClient = SibApiV3Sdk.ApiClient.instance;
+  const apiKey = defaultClient.authentications['apiKey'];
   apiKey.apiKey = process.env.BREVO_API_KEY;
 
+  // Maak nu de specifieke API-instanties aan; ze gebruiken nu automatisch de sleutel
+  const transactionalEmailsApi = new SibApiV3Sdk.TransactionalEmailsApi();
+  const contactsApi = new SibApiV3Sdk.ContactsApi();
+  // --- EINDE CORRECTIE ---
+
   try {
-    // Stap 1: Contactpersoon aanmaken/updaten en toevoegen aan lijst
-    await contactsApiInstance.createContact({
+    // Stap 1: Contactpersoon aanmaken/updaten 
+    await contactsApi.createContact({
       email: email,
       listIds: [PREORDER_LIST_ID],
       updateEnabled: true,
     });
 
-    // Data voor in de e-mails
     const emailParams = {
-      productTitle,
-      selectedVariant,
-      quantity,
-      price,
-      productUrl,
-      customerEmail: email,
+      productTitle, selectedVariant, quantity, price, productUrl, customerEmail: email,
     };
 
     // Stap 2: Stuur de bevestigingsmail naar de KLANT
-    await apiInstance.sendTransacEmail({
+    await transactionalEmailsApi.sendTransacEmail({
       templateId: CUSTOMER_TEMPLATE_ID,
       to: [{ email: email }],
       params: emailParams,
     });
 
     // Stap 3: Stuur de notificatiemail naar de ADMIN
-    await apiInstance.sendTransacEmail({
+    await transactionalEmailsApi.sendTransacEmail({
       templateId: ADMIN_TEMPLATE_ID,
       to: [{ email: ADMIN_EMAIL }],
       params: emailParams,
